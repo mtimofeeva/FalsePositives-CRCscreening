@@ -1,0 +1,45 @@
+clear
+
+* Set working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\Final files first and updated search"
+
+* Start med første ark
+import excel "ROB import to Stata.xlsx", sheet("RCT") cellrange(A3) firstrow clear
+keep Author Year Recordnumber Chooseeitherhighlowor
+gen Design = "RCT"
+save ROB_data1.dta, replace
+
+* Append de andre ark
+foreach ark in Cross-sectional Diag-acc Cohort {
+    import excel "ROB import to Stata.xlsx", sheet("`ark'") cellrange(A3) firstrow clear
+    keep Author Year Recordnumber Chooseeitherhighlowor
+	gen Design = "`ark'"
+    append using ROB_data1.dta
+	save ROB_data1.dta, replace
+}
+gsort Author -Year
+keep if strpos(Recordnumber, "FP") >0
+rename Chooseeitherhighlowor RoB
+replace RoB = lower(RoB)
+replace RoB = trim(RoB)
+replace RoB = subinstr(RoB, "low/potentially unclear", "low", .)
+replace RoB = subinstr(RoB, "low/unclear", "low", .)
+d //tjek at du har 123 observationer
+gen author_year = Author + ", " + string(Year)
+keep author_year Design RoB
+order author_year Design RoB
+
+* Opgør antal studier med hver type RoB
+tab RoB
+
+* Sæt nyt directory og eksporter dertil
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Results"
+export excel using "SuppTable3.xlsx", cell(A3) sheet("Data") replace
+
+* Skriv titel i celle A1
+putexcel set "SuppTable3.xlsx", sheet("Data") modify
+putexcel A1 = "Supplementary Table 3. Risk of bias assessments using the Joanna Briggs Institute's critical appraisal tools"
+
+putexcel A2 = "Author and year" ///
+         B2 = "Study design" ///
+		 C2 = "Risk of bias assessment"
