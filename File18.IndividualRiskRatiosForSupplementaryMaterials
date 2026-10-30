@@ -1,0 +1,279 @@
+**********************************************
+* Producing supplementary Table 5. It will include author, year, evaluated factors, counts in the 2 by 2 table, RR of FPR, and RR of PPV.
+**********************************************
+
+* I should sort by test type (FIT, gFOBT, mixed), then by author, and then by year in descending order
+
+clear
+
+* Setting working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\Final files first and updated search"
+
+* Calling the cleansed dataset and naming some labels
+use "FPdatasetCleansed"
+label variable publication_year "Year"
+label variable num_FP_ref "FP ref"
+label variable num_TN_ref "TN ref"
+label variable num_FP_comp "FP comp"
+label variable num_TN_comp "TN comp"
+label variable num_TP_ref "TP ref"
+label variable num_TP_comp "TP comp"
+
+* Calculating primary and secondary outcomes - FPR and PPVs with 95% CIs
+gen FPR_ref = num_FP_ref/(num_FP_ref+num_TN_ref)
+label variable FPR_ref "False positive rate for reference group"
+gen FPR_comp = num_FP_comp/(num_FP_comp+num_TN_comp)
+label variable FPR_comp "False positive rate for comparison group"
+gen RR_FPR_comp_ref = FPR_comp/FPR_ref
+label variable RR_FPR_comp_ref "Relative risk of false positive rates in comparison group versus reference group"
+gen PPV_ref = num_TP_ref/(num_TP_ref+num_FP_ref)
+label variable PPV_ref "Positive predictive value for reference group"
+gen PPV_comp = num_TP_comp/(num_TP_comp+num_FP_comp)
+label variable PPV_comp "Positive predictive value for comparison group"
+gen RR_PPV_comp_ref = PPV_comp/PPV_ref
+label variable RR_PPV_comp_ref "Relative risk of positive predictive values in comparison group versus reference group" //be aware of missing values due to 0 observations in some cells
+
+gen logseFPR = sqrt(1/num_FP_comp-1/(num_FP_comp+num_TN_comp)+1/num_FP_ref-1/(num_FP_ref+num_TN_ref))
+label variable logseFPR "Standard Error for logRRFPR"
+gen logsePPV = sqrt(1/num_TP_comp-1/(num_TP_comp+num_FP_comp)+1/num_TP_ref-1/(num_TP_ref+num_FP_ref))
+label variable logsePPV "Standard Error for logRRPPV"
+gen lower_ci = .
+replace lower_ci = exp(log(RR_FPR_comp_ref) - 1.96 * logseFPR) if num_FP_ref != . & num_TN_ref != . & num_FP_comp != . & num_TN_comp !=.
+replace lower_ci = exp(log(RR_PPV_comp_ref) - 1.96 * logsePPV) if num_TP_ref != . & num_FP_ref != . & num_TP_comp != . & num_FP_comp !=.
+gen upper_ci = .
+replace upper_ci = exp(log(RR_FPR_comp_ref) + 1.96 * logseFPR) if num_FP_ref != . & num_TN_ref != . & num_FP_comp != . & num_TN_comp !=.
+replace upper_ci = exp(log(RR_PPV_comp_ref) + 1.96 * logsePPV) if num_TP_ref != . & num_FP_ref != . & num_TP_comp != . & num_FP_comp !=.
+
+* Sorter data i grupper pba. gfobt_fit, så ift. forfatter og til sidst ift. publiceringsårstal
+gen sort_order = .
+replace sort_order = 1 if gfobt_fit=="FIT"
+replace sort_order = 2 if gfobt_fit=="gFOBT"
+replace sort_order = 3 if gfobt_fit=="gFOBT and FIT"
+replace sort_order = 4 if gfobt_fit=="NR"
+gen author_year = author + ", " + string(publication_year)
+gen FPR_CI = string(RR_FPR_comp_ref, "%9.2f") + " (" + string(lower_ci, "%9.2f") + "-" + string(upper_ci, "%9.2f") + ")" if RR_FPR_comp_ref != .
+gen PPV_CI = string(RR_PPV_comp_ref, "%9.2f") + " (" + string(lower_ci, "%9.2f") + "-" + string(upper_ci, "%9.2f") + ")" if RR_PPV_comp_ref != .
+sort sort_order author -publication_year
+order author_year gfobt_fit exp_ref_comp num_TP_comp num_FP_comp num_TN_comp num_TP_ref num_FP_ref num_TN_ref FPR_CI PPV_CI
+
+* Opret ny kolonne til estimater der har andre formater end FPR eller PPV
+gen str100 reported_estimates = ""
+replace reported_estimates = "1" if missing(FPR_CI) & missing(PPV_CI)
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==32 & strpos(exp_ref_comp, "Age at screening (as a continious variable)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==32 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==32 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==45 & strpos(exp_ref_comp, "Age at screening (50-59 vs. 60-69)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==45 & strpos(exp_ref_comp, "Age at screening (50-59 vs. 70-79)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==45 & strpos(exp_ref_comp, "Age at screening (50-59 vs. 80-89)") >0
+replace reported_estimates = subinstr(reported_estimates, "of carcinoma for different age groups ", "", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "of AA for different age groups ", "", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace effect_size_adj = string(real(effect_size_adj), "%9.2f") if study_number == 52 //sikrer at der er to decimaler i effektestimatet
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "Antiplatelet drug use (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "Age at screening (per year)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "Hemoglobin concentration (normal > 120 g/L in women and > 130 g/L in men vs. low)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "Alcohol (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "Chronic comorbid disease (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "Smoking (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "BMI (per 1kg/m2 increase)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "Platelet count (normal vs. low <150 x10E9/L)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==52 & strpos(exp_ref_comp, "Haemorrhoids on endoscopy (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==57 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==57 & strpos(exp_ref_comp, "Age at screening (<62 vs. ≥62)") >0
+replace exp_ref_com = subinstr(exp_ref_comp, "Age at screening (<62 vs. ≥62)", "Age at screening (33-61 vs. 62-84)", .) //inkluderer information om age range for populationen i risikofaktorgrupperingen
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==74 & strpos(exp_ref_comp, "Symptoms (low-risk vs. high-risk)") >0
+replace reported_estimates = subinstr(reported_estimates, "Specificity low-risk symptomes, specificity: 88.4, high-risk symptomes, specificity: 82.3 (low-risk symptomes, specificity:  (86.8, 89.8), high-risk symptomes,  specificity:  (81.3, 83.2))",  "Specificity 88.4 (86.8, 89.8) vs. 82.3 (81.3, 83.2)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "Specificity low-risk symptomes, specificity: 71.8, high-risk symptomes,  specificity:  63.0  (low-risk symptomes, specificity:  (69.8, 73.8), high-risk symptomes,  specificity: (61.8, 64.1))",  "Specificity 71.8 (69.8, 73.8) vs. 63.0 (61.8, 64.1)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "Specificity low-risk symptomes, specificity:  96.9 , high-risk symptomes,  specificity: 93.9 (low-risk symptomes, specificity:  (96.0, 97.6), high-risk symptomes,  specificity:  (93.3, 94.5))",  "Specificity 96.9 (96.0, 97.6) vs. 93.9 (93.3, 94.5)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==135 & strpos(exp_ref_comp, "Haemorrhoids (no vs. yes)") >0
+replace reported_estimates = subinstr(reported_estimates, "Specificity No hemorrhoids: 95%; Hemorrhoids: 94.7 (No hemorrhoids: (94.4-95.6); Hemorrhoids (94.0-95.3))", "Specificity 95 (94.4-95.6) vs. 94.7 (94.0-95.3)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==83 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = subinstr(reported_estimates, "Specificity, NPV for men and women separetly Sp women: 98.4; Sp men 98.8 (Sp women: 97.0–99.2; Sp men 97.4–99.4)", "Specificity 98.4 (97.0–99.2) vs. 98.8 (97.4–99.4)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "Specificity, NPV for men and women separetly Sp women: 98.4; Sp men 98.0 (Sp women: 97.0–99.2; Sp men 96.3–98.8)", "Specificity 98.4 (97.0–99.2) vs. 98.0 (96.3–98.8)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "Specificity, NPV for men and women separetly Sp women: 94; Sp men 92.6 (Sp women: 91.7–95.7; Sp men 90.2–94.5)", "Specificity 94.0 (91.7–95.7) vs. 92.6 (90.2–94.5)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "Specificity, NPV for men and women separetly Sp women: 97.5; Sp men 96.4 (Sp women: 95.9–98.5; Sp men 94.6–97.7)", "Specificity 97.5 (95.9–98.5) vs. 96.4 (94.6–97.7)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==84 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " " + ci if study_number==99 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " " + ci if study_number==99 & strpos(exp_ref_comp, "Age at screening (<55 vs. ≥55)") >0
+replace exp_ref_comp = subinstr(exp_ref_comp, "Age at screening (<55 vs. ≥55)", "Age at screening (50-54 vs. 55-65)", .) //anvender information on age range til at præcisere risikofaktorgrupperingen
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==103 & strpos(exp_ref_comp, "Age at screening (50-59 vs. 60-69)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==103 & strpos(exp_ref_comp, "BMI (<25 vs. ≥25)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==103 & strpos(exp_ref_comp, "Age at screening (50-59 vs. > 70-69)") >0
+replace reported_estimates = subinstr(reported_estimates, "false-positive", "FP", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==82 & strpos(exp_ref_comp, "Anticoagulants/antithrombotics (no vs. yes) (Only patients who obtained the medications from the pharmacy at least for two consecutive months and within 30 days of FIT testing were considered as drug takers. Anticoagulant users were receiving standard therapeutic doses. Drugs included were warfarin, clopidogrel, enoxaparin. 73% were single drug users)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==82 & strpos(exp_ref_comp, "Aspirin and/or NSAIDs (no vs. yes) (Only patients who obtained the medications from the pharmacy at least for two consecutive months and within 30 days of FIT testing were considered as drug takers. 96% aspirin yes were low-dose yes of 75 or 100 mg/day and 90% aspirin were single drug yes. NSAID yes were taking standard therapeutic doses. 74% NSAID takers were single drug users") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==82 & strpos(exp_ref_comp, "Aspirin (no vs. yes) (Only patients who obtained the medications from the pharmacy at least for two consecutive months and within 30 days of FIT testing were considered as drug takers. 96% were low-dose users of 75 or 100 mg/day and 90% were single drug users)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==118 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = subinstr(reported_estimates, char(10), "", .) //fjerner mellemrum i observationen
+replace reported_estimates = subinstr(reported_estimates, "PPV and Specificity for each strata Specificity: women: 92.4; men: 92.4PPV: women: 7.64; men 12.5 (Specificity: women: 91.8-93.1; men: 91.8-93.1PPV: women: 5.24-10.0; men: 9.52-15.5)", "Specificity 92.4 (91.8-93.1) vs. 92.4 (91.8-93.1)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==51 & strpos(exp_ref_comp, "Rectal bleeding and diarrhoae over 40 years old (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==51 & strpos(exp_ref_comp, "Iron deficiency anaemia (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==70 & strpos(exp_ref_comp, "Polygenic Risk Score (low vs. medium)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==70 & strpos(exp_ref_comp, "Polygenic Risk Score (low vs. high)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Diabetes mellitus (no vs. yes)") >0
+replace effect_size_adj = string(real(effect_size_adj), "%9.2f") if study_number == 69 //sikrer at der er to decimaler i effektestimatet
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Smoking (never vs. past)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Insurance status (Medicaid vs. uninsured)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Anticoagulant use (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Smoking (never vs. unknown)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Insurance status (Medicaid vs. medicare)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Hypertension (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Federal poverty level (<100% vs. >150%)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Federal poverty level (<100% vs. 100%-150%)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Language (English vs. Spanish)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Ethnicity (White vs. non-white)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Smoking (never vs. current)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Language (English vs. Other)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Insurance status (Medicaid vs. commercial)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Age (50-64 vs. 65-74)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Federal poverty level (<100% vs. unknown)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "Ethnicity (White vs. Hispanic)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==69 & strpos(exp_ref_comp, "NSAIDs (no vs. yes)") >0
+replace effect_size_adj = string(real(effect_size_adj), "%9.2f") if study_number == 44 //sikrer at der er to decimaler i effektestimatet
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==44 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==44 & strpos(exp_ref_comp, "Age (60-64 vs. 65-69)") >0 //wait until you have reversed numbers
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==44 & strpos(exp_ref_comp, "Age (50-54 vs. 65-69)") >0 //wait until you have reversed numbers
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==44 & strpos(exp_ref_comp, "Age (55-59 vs. 65-69)") >0 //wait until you have reversed numbers
+replace reported_estimates = subinstr(reported_estimates, "for AN at subsequent round (round three) ", "", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace effect_size_adj = string(real(effect_size_adj), "%9.2f") if study_number == 39 //sikrer at der er to decimaler i effektestimatet
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==39 & strpos(exp_ref_comp, "Fiber intake (gm (abbreviation not defined)) (continous variable)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==39 & strpos(exp_ref_comp, "Haemorrhoids (no vs. yes)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==39 & strpos(exp_ref_comp, "Age (per each additional year)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==39 & strpos(exp_ref_comp, "BMI (kg/m2) (continuous variable)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==39 & strpos(exp_ref_comp, "Calcium intake (mg) (continuous variable)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==39 & strpos(exp_ref_comp, "Smoking (never/past vs. current)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==39 & strpos(exp_ref_comp, "Aspirin (nonregular user vs. regular user)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==39 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==39 & strpos(exp_ref_comp, "NSAID (no vs. yes) (regular use)") >0
+replace reported_estimates = subinstr(reported_estimates, "for false positives", "FP", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "for false positive", "FP", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+
+gen lower_bound = substr(ci, 1, strpos(ci, "-") - 1) if study_number == 30 //flytter værdier med forkert antal decimaler til ny variabel
+gen upper_bound = substr(ci, strpos(ci, "-") + 1, .) if study_number == 30 //flytter værdier med forkert antal decimaler til ny variabel
+replace lower_bound = string(real(lower_bound), "%9.2f") if real(lower_bound) < . //retter værdier til to decimaler
+replace upper_bound = string(real(upper_bound), "%9.2f") if real(upper_bound) < . //retter værdier til to decimaler
+replace ci = lower_bound + "-" + upper_bound if study_number == 30 //fører rettede værdier tilbage til de rette observationer
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==30 & strpos(exp_ref_comp, "Age (means compared)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==122 & strpos(exp_ref_comp, "Age (40-49 vs. 60-74)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==122 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==122 & strpos(exp_ref_comp, "Age (40-49 vs. 50-59)") >0
+replace reported_estimates = subinstr(reported_estimates, "PPV 40-49: 1.8; 60-74: 7.1 (40-49: 0.4-3.2; 60-74: 5.5-8.7)", "PPV 1.8 (0.4-3.2) vs. 7.1 (5.5-8.7)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "PPV male:6.6; female: 4.4 (male:5.1-8.1; female: 3.1-5.8)", "PPV 4.4 (3.1-5.8) vs. 6.6 (5.1-8.1)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "PPV 40-49: 1.8; 50-59: 5.4 (40-49: 0.4-3.2; 50-59: 3.8-7.0)", "PPV 1.8 (0.4-3.2) vs. 5.4 (3.8-7.0)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "PPV male:13.6; female: 5.8 (male:10.8-16.3; female: 3.8-7.9)", "PPV 5.8 (3.8-7.9) vs. 13.6 (10.8-16.3)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "PPV 40-49: 2.6; 50-59: 8.5 (40-49: 0.1-5.1; 50-59: 5.7-11.4)", "PPV 2.6 (0.1-5.1) vs. 8.5 (5.7-11.4)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "PPV 40-49: 2.6; 60-74: 12.9 (40-49: 0.1-5.1; 60-74: 10.1-15.6)", "PPV 2.6 (0.1-5.1) vs. 12.9 (10.1-15.6)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace effect_size_adj = string(real(effect_size_adj), "%9.2f") if study_number == 16 //sikrer at der er to decimaler i effektestimatet
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==16 & strpos(exp_ref_comp, "Socioeconomic status (low vs. middle)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==16 & strpos(exp_ref_comp, "Socioeconomic status (low vs. high)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==16 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = subinstr(reported_estimates, "OR of AN detection rates (which is true positive rates)", "OR of TPR ", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==123 & strpos(exp_ref_comp, "Antiplatelet therapy (therapy vs. control)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==123 & strpos(exp_ref_comp, "Antiplatelet therapy and Oral Anticoagulant (therapy vs. control)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==123 & strpos(exp_ref_comp, "Oral Anticoagulant (therapy vs. control)") >0
+replace reported_estimates = subinstr(reported_estimates, "Specificity  control: 84.8%; exposed: 82% ( control: 81.7-87.4%; exposed: 74.3-88.4%%)", "Specificity 82% 74.3-88.4%) vs. 84.8% (81.7-87.4)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "PPV  control: 21.4%; exposed: 17.2% ( control: 14.8%-29.8%; exposed: 6.5%-36.4%)", "PPV 17.2% (6.5%-36.4%) vs. 21.4% (14.8%-29.8%)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "Specificity  control: 84.8%; exposed: 76.9% ( control: 81.7-87.4%; exposed: 67.4-84.3%)", "Specificity 76.9% (67.4-84.3%) vs. 84.8% (81.7-87.4%)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "PPV  control: 21.4%; exposed: 22% ( control: 14.8%-29.8%; exposed: 12.6%-35%)", "PPV 22% (12.6%-35%) vs. 21.4% (14.8%-29.8%)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "PPV  control: 21.4%; exposed: 26.6% ( control: 14.8%-29.8%; exposed: 12.9%-46.1%)", "PPV 26.6% (12.9%-46.1%) vs. 21.4% (14.8%-29.8%)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = subinstr(reported_estimates, "Specificity  control: 84.8%; exposed: 79.9% ( control: 81.7-87.4%; exposed: 74-84.7%)", "Specificity 79.9% (74-84.7%) vs. 84.8% (81.7-87.4%)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==20 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = subinstr(reported_estimates, char(9), "", .) //fjerner tabulering midt i streng
+replace reported_estimates = subinstr(reported_estimates, "Sensitivity by sex ; Differences in sensitivity Sensitivity for CRC in females: 70.8%; Sensitivity for CRC in males: 93.3% ; Sensitivity for AA in females: 28.6%; Sensitivity for AA in males: 32.9%;  (Sensitivity for CRC in females: (49–87); Sensitivity for CRC in males:  (82–99); Sensitivity for advanced adenomas in females: (21–37); Sensitivity for AA in males: (26–41))", "Sensitivity for CRC 70.8% (49–87) vs. 93.3% (82–99); Sensitivity for AA 28.6% (21–37) vs. 32.9% (26–41)", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==59 & strpos(exp_ref_comp, "Age at screening in men (50–54 vs. 65–69)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==59 & strpos(exp_ref_comp, "Age at screening in women (50–54 vs. 65–69)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==59 & strpos(exp_ref_comp, "Age at screening in men (50–54 vs. 55–59)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==59 & strpos(exp_ref_comp, "Age at screening in women (50–54 vs. 55–59)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==59 & strpos(exp_ref_comp, "Age at screening in men (50–54 vs. 60–64)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==59 & strpos(exp_ref_comp, "Age at screening in women (50–54 vs. 60–64)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==59 & strpos(exp_ref_comp, "Age at screening in men (50–54 vs. 70–74)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==59 & strpos(exp_ref_comp, "Age at screening in women (50–54 vs. 70–74)") >0
+replace reported_estimates = subinstr(reported_estimates, "PPV for each of the groups", "PPV", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+replace effect_size_adj = string(real(effect_size_adj), "%9.2f") if study_number == 86 //sikrer at der er to decimaler i effektestimatet
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Race (White vs. Black)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Years of exam (1997–1998 vs. 1999–2000)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Age (50–54 vs. 65–69)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Number of prior FOBT (0 vs.1)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Number of prior FOBT (0 vs.4)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Years of exam (1997–1998 vs. 2003–2004)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Years of exam (1997–1998 vs. 2007–2009)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Age (50–54 vs. 69–74)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Age (50–54 vs. 55–59)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Number of prior FOBT (0 vs.2)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Number of prior FOBT (0 vs.3)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Race (White vs. American Indian/Alaskan native)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Age (50–54 vs. 75–79)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Years of exam (1997–1998 vs. 2005–2006)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Years of exam (1997–1998 vs. 2001–2002)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Race (White vs. Asian/Pacific islander)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==86 & strpos(exp_ref_comp, "Age (50–54 vs. 60–64)") >0
+replace reported_estimates = subinstr(reported_estimates, "OR of FP among FOBT+", "OR of FDR", .) //tilpasser formatet. Informationen der slettes findes i andre variable.
+
+//replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==12 & strpos(exp_ref_comp, "Age (<39.9 vs. 50-59.9)") >0
+//replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==12 & strpos(exp_ref_comp, "Age (<39.9 vs. >70)") >0
+//replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==12 & strpos(exp_ref_comp, "Age (<39.9 vs. 60-69.9)") >0
+//replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==12 & strpos(exp_ref_comp, "Age (<39.9 vs. 40-49.9)") >0
+
+replace effect_size_adj = string(real(effect_size_adj), "%9.2f") if study_number == 88 //sikrer at der er to decimaler i effektestimatet
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==88 & strpos(exp_ref_comp, "Age at screening (50-54 vs. 65-59)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==88 & strpos(exp_ref_comp, "Screening round (successive vs. initial)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==88 & strpos(exp_ref_comp, "Age at screening (50-54 vs. 60-64)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==88 & strpos(exp_ref_comp, "Age at screening (50-54 vs. 55-59)") >0
+replace reported_estimates = outcome + " " + effect_size_adj + " (" + ci + ")" if study_number==88 & strpos(exp_ref_comp, "Sex (female vs. male)") >0
+
+* Tilpas datasæt til de variable der skal indgå i tabellen
+keep author_year gfobt_fit exp_ref_comp num_TP_comp num_FP_comp num_TN_comp num_TP_ref num_FP_ref num_TN_ref FPR_CI PPV_CI reported_estimates
+
+* Sæt nyt directory til der hvor tabellen skal gemmes
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Results\Supplementary files"
+* Eksporter data uden kolonneoverskrifter, startende fra række 3
+export excel using "SuppTable4.xlsx", cell(A3) sheet("Data") replace
+
+* Skriv titel i celle A1
+putexcel set "SuppTable4.xlsx", sheet("Data") modify
+putexcel A1 = "Supplementary Table 4. Individual risk ratios for false positive rates and positive predictive values of faecal occult blood tests"
+
+
+* Tilføj dine egne kolonneoverskrifter i række 2
+
+putexcel A2 = "Author and year" ///
+         B2 = "Faecal test" ///
+         C2 = "Risk factor" ///
+         D2 = "TP comp" ///
+         E2 = "FP comp" ///
+         F2 = "TN comp" ///
+         G2 = "TP ref" ///
+         H2 = "FP ref" ///
+         I2 = "TN ref" ///
+         J2 = "Relative risk FPR (95% CI)" ///
+         K2 = "Relative risk PPV (95% CI)" ///
+		 L2 = "Reported estimates (95% CI)"
+		 
+putexcel A728 = "TP true positives"
+putexcel A729 = "FP false positives"
+putexcel A730 = "TN true negatives"
+putexcel A731 = "comp comparator"
+putexcel A732 = "ref reference"
+putexcel A733 = "FPR false positive rates"
+putexcel A734 = "PPV positive predictive values"
+putexcel A735 = "CI confidence interval"
+putexcel A736 = "FIT Faecal immunochemical test"
+putexcel A737 = "gFOBT guaiac faecal occult blood test"
+putexcel A738 = "BMI body mass index"
+putexcel A739 = "PY pack years"
+putexcel A740 = "AA advanced adenoma"
+putexcel A741 = "CRC colorectal cancer"
+putexcel A742 = "NSAID nonsteroidal antiinflammatory drugs"
+putexcel A743 = "SSRI selective serotonine reuptake inhibitors"
+putexcel A744 = "FBG fasting blood glucose"
+putexcel A745 = "f-HB faecal haemoglobin"
+putexcel A746 = "COPD chronic obstructive pulmunary disease"
+putexcel A747 = "GP general practitioner"
+
+* Optælling til artiklens resultat afsnit
+tab gfobt_fit
+tab gfobt_fit if FPR_CI != "" //tæller antal med RR FPR
+tab gfobt_fit if PPV_CI != "" //tæller antal med RR PPV
+tab gfobt_fit if reported_estimates != "" //tæller antal med andre mål end FPR og PPV
