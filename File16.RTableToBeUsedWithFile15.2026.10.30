@@ -1,0 +1,22 @@
+*******************************************
+** Collect coefficients and CIs for Excel**
+*******************************************
+
+mat list r(table) //check which lines data is in
+mat O=r(table) //call the table O for less typing afterwards
+mat list O //see that the data is there
+mat T1=O[1,1] //collect coefficient (linear regression)
+mat list T1 //see that the data is there
+mat T2=O[5..6,1] //collect the 95%CI
+mat list T2 //see that the data is there
+mat T=T1\T2 //join rows
+mat list T //see the data
+mat R=T' //transpose data from vertical to horizontal
+mat list R //see the matrix
+
+//combine the coefficient and confidence interval values to one cell
+local r11v: display %4.2f round(R[1,1],0.01)
+local r12v: display %4.2f round(R[1,2],0.01)
+local r13v: display %4.2f round(R[1,3],0.01)
+
+putexcel D3= "`r11v' (`r12v' - `r13v')" 
