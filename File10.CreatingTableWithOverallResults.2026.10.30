@@ -1,0 +1,290 @@
+****************************************************************
+*******Meta-analyses for overall table including p-values*******
+****************************************************************
+
+****************************
+***Starting with FPR data***
+****************************
+
+clear
+* working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR"
+
+* Create excel sheet for analysis results
+putexcel set "SuppTable6.xlsx", sheet("Results FPR") modify
+
+putexcel A1 = ("Risk factor") B1 = ("Faecal test") C1 = ("n studies") ///
+         D1 = ("Total n participants") E1 = ("Effect size, HKSJ (95%CI)") ///
+		 F1 = ("p-value*, HKSJ") G1 = ("I2, HKSJ") H1 = ("p-value I2, HKSJ") ///
+         I1 = ("p-value Harbord, Harbord's Modified Score Test for Publication Bias") ///
+		 J1 = ("p-value Egger, HKSJ") K1 = ("Effect size, REML (95%CI)") ///
+		 L1 = ("p-value†, REML")
+         
+local files : dir . files "*.dta"
+
+local row = 2
+local ii = 0
+
+local prev_testtype ""
+
+foreach file of local files {
+
+	local ii= `ii' +1
+	dis `ii'
+	local name = subinstr("`file'", ".dta", "", .)
+    use "`file'", clear
+	
+	* 0. Excluding studies with symptomatic and/or surveillance populations
+	keep if strpos(popu, "pop") >0
+	if _N <= 1 continue
+
+    * 1. Meta-analysis HKSJ with log transformed values
+    meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+	meta summarize, se(khartung) nostudies
+	return list
+
+	scalar n_studies = r(N)
+    scalar eff_hksj = r(theta)
+    scalar lb_hksj = r(ci_lb)
+    scalar ub_hksj = r(ci_ub)
+	scalar p_hksj = r(p)
+    scalar i2_hksj = r(I2)
+    scalar p_i2_hksj = r(p_Q)
+
+    local eff_ci_hksj = string(eff_hksj, "%5.2f") + " (" + ///
+                        string(lb_hksj, "%5.2f") + "–" + ///
+                        string(ub_hksj, "%5.2f") + ")"
+* exponentiation of log-results
+scalar RR_hksj = exp(eff_hksj)
+scalar RR_lb_hksj = exp(lb_hksj)
+scalar RR_ub_hksj = exp(ub_hksj)
+
+local RR_ci_hksj = string(RR_hksj, "%5.2f") + " (" + ///
+                   string(RR_lb_hksj, "%5.2f") + "–" + ///
+                   string(RR_ub_hksj, "%5.2f") + ")"
+    
+	* Small study bias tests
+	* only run Eggers and Harbord if more than 2 studies
+	if  (`ii' == 8 | `ii' == 9 | `ii' == 13 | `ii' == 16) {
+        scalar p_egger_hksj = .
+		scalar p_harbord_hksj = .
+	}
+    else {
+			meta bias, egger
+           scalar p_egger_hksj = r(p)
+
+    meta esize num_FP_comp num_TN_comp num_FP_ref num_TN_ref
+	meta bias, harbord
+    scalar p_harbord_hksj = r(p)
+	}
+
+    * 2. Meta-analysis REML
+	meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(logRR) 
+	meta summarize
+
+	scalar eff_reml = r(theta)
+    scalar lb_reml = r(ci_lb)
+    scalar ub_reml = r(ci_ub)
+	scalar n_studies = r(N)
+	scalar p_reml = r(p)
+	
+	local eff_ci_reml = string(eff_reml, "%5.2f") + " (" + ///
+                        string(lb_reml, "%5.2f") + "–" + ///
+                        string(ub_reml, "%5.2f") + ")"
+						
+* exponentiation of log-results
+scalar RR_reml = exp(eff_reml)
+scalar RR_lb_reml = exp(lb_reml)
+scalar RR_ub_reml = exp(ub_reml)
+
+local RR_ci_reml = string(RR_reml, "%5.2f") + " (" + ///
+                   string(RR_lb_reml, "%5.2f") + "–" + ///
+                   string(RR_ub_reml, "%5.2f") + ")"
+
+	* Small study bias tests
+	* only run Egger's and Harbord's if not having trouble converging during Tau2 estimation
+    if  (`ii' == 8 | `ii' == 9 | `ii' == 13 | `ii' == 16) {
+        scalar p_egger_reml = .
+		scalar p_harbord_reml = .
+	}
+    else {
+	meta bias, egger
+    scalar p_egger_reml = r(p)
+	
+	
+    meta esize num_FP_comp num_TN_comp num_FP_ref num_TN_ref
+    meta bias, harbord
+    scalar p_harbord_reml = r(p)
+	}
+
+* calculate total participants
+	summarize num_participants
+	local total_participants = r(sum)
+	
+	* Put results to Excel
+putexcel A`row' = (rf) ///
+         B`row' = (gfobt_fit) ///
+         C`row' = (n_studies) ///
+         D`row' = (`total_participants') E`row' = ("`RR_ci_hksj'") F`row' = (p_hksj) ///
+		 G`row' = (i2_hksj) H`row' = (p_i2_hksj) I`row' = (p_harbord_hksj) ///
+		 J`row' = (p_egger_hksj) K`row' = ("`RR_ci_reml'") L`row' = (p_reml)
+     
+
+* Increase row number for next iteration
+local row = `row' + 1
+}
+
+******************************
+***Continuing with PPV data***
+******************************
+
+* working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV"
+
+* Add sheet for PPV analysis results
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\SuppTable6.xlsx", sheet("Results PPV") modify
+
+putexcel A1 = ("Risk factor") B1 = ("Faecal test") C1 = ("n studies") ///
+         D1 = ("Total n participants") E1 = ("Effect size, HKSJ (95%CI)") ///
+		 F1 = ("p-value, HKSJ*") G1 = ("I2, HKSJ") H1 = ("p-value I2, HKSJ") ///
+         I1 = ("p-value Harbord, Harbord's Modified Score Test for Publication Bias") ///
+		 J1 = ("p-value Egger, HKSJ") K1 = ("Effect size, REML (95%CI)") ///
+		 L1 = ("p-value, REML†")
+         
+local files : dir . files "*.dta"
+
+local row = 2
+local ii = 0
+
+local prev_testtype ""
+
+foreach file of local files {
+
+	local ii= `ii' +1
+	dis `ii'
+	local name = subinstr("`file'", ".dta", "", .)
+    use "`file'", clear
+
+	* 0. Excluding studies with symptomatic and/or surveillance populations
+	keep if strpos(popu, "pop") >0
+	if _N <= 1 continue
+	
+    * 1. Meta-analysis HKSJ with log transformed values
+    meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+	meta summarize, se(khartung) nostudies
+	return list
+
+	scalar n_studies = r(N)
+    scalar eff_hksj = r(theta)
+    scalar lb_hksj = r(ci_lb)
+    scalar ub_hksj = r(ci_ub)
+	scalar p_hksj = r(p)
+    scalar i2_hksj = r(I2)
+    scalar p_i2_hksj = r(p_Q)
+
+    local eff_ci_hksj = string(eff_hksj, "%5.2f") + " (" + ///
+                        string(lb_hksj, "%5.2f") + "–" + ///
+                        string(ub_hksj, "%5.2f") + ")"
+* exponentiation of log-results
+scalar RR_hksj = exp(eff_hksj)
+scalar RR_lb_hksj = exp(lb_hksj)
+scalar RR_ub_hksj = exp(ub_hksj)
+
+local RR_ci_hksj = string(RR_hksj, "%5.2f") + " (" + ///
+                   string(RR_lb_hksj, "%5.2f") + "–" + ///
+                   string(RR_ub_hksj, "%5.2f") + ")"
+    
+	* Small study bias tests
+	* only run Eggers and Harbord if more than 2 studies
+* Small study bias tests
+		* only run Eggers and Harbord if more than 2 studies
+	if  (`ii' == 1 | `ii' == 8 | `ii' == 9 | `ii' == 10 | `ii' == 11 | `ii' == 12 | `ii' == 14 | `ii' == 18 | `ii' == 19 | `ii' == 20 | `ii' == 21 | `ii' == 22 |`ii' == 23 | `ii' == 24 |`ii' == 26 | `ii' == 28 | `ii' == 29 |`ii' == 30 | `ii' == 31 | `ii' == 37 | `ii' == 43 | `ii' == 50 | `ii' == 51 | `ii' == 52 | `ii' == 54 | `ii' == 55 | `ii' == 56) {
+		scalar p_egger_hksj = .
+		scalar p_harbord_hksj = .
+	}
+    else {
+	meta bias, egger
+	scalar p_egger_hksj = r(p)
+	meta esize num_TP_comp num_FP_comp num_TP_ref num_FP_ref
+    meta bias, harbord
+    scalar p_harbord_hksj = r(p)
+	}
+
+    * 2. Meta-analysis REML
+	meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(logRR)
+	meta summarize
+
+	scalar eff_reml = r(theta)
+    scalar lb_reml = r(ci_lb)
+    scalar ub_reml = r(ci_ub)
+	scalar n_studies = r(N)
+	scalar p_reml = r(p)
+	
+	local eff_ci_reml = string(eff_reml, "%5.2f") + " (" + ///
+                        string(lb_reml, "%5.2f") + "–" + ///
+                        string(ub_reml, "%5.2f") + ")"
+						
+* exponentiation of log-results
+scalar RR_reml = exp(eff_reml)
+scalar RR_lb_reml = exp(lb_reml)
+scalar RR_ub_reml = exp(ub_reml)
+
+local RR_ci_reml = string(RR_reml, "%5.2f") + " (" + ///
+                   string(RR_lb_reml, "%5.2f") + "–" + ///
+                   string(RR_ub_reml, "%5.2f") + ")"
+
+	* Small study bias tests
+		* only run Egger's and Harbord's if not having trouble converging during Tau2 estimation
+	if  (`ii' == 1 | `ii' == 8 | `ii' == 9 | `ii' == 10 | `ii' == 11 | `ii' == 12 | `ii' == 14 | `ii' == 18 | `ii' == 19 | `ii' == 20 | `ii' == 21 | `ii' == 22 |`ii' == 23 | `ii' == 24 |`ii' == 26 | `ii' == 28 | `ii' == 29 |`ii' == 30 | `ii' == 31 | `ii' == 37 | `ii' == 43 | `ii' == 50 | `ii' == 51 | `ii' == 52 | `ii' == 54 | `ii' == 55 | `ii' == 56) {
+		scalar p_egger_reml = .
+		scalar p_harbord_reml = .
+	}
+    else {
+	meta bias, egger
+	scalar p_egger_reml = r(p)
+	meta esize num_TP_comp num_FP_comp num_TP_ref num_FP_ref
+    meta bias, harbord
+    scalar p_harbord_reml = r(p)
+	}
+
+* calculate total participants
+	summarize num_participants
+	local total_participants = r(sum)
+	
+	* Put results to Excel
+putexcel A`row' = (rf) ///
+         B`row' = (gfobt_fit) ///
+         C`row' = (n_studies) ///
+         D`row' = (`total_participants') E`row' = ("`RR_ci_hksj'") F`row' = (p_hksj) ///
+		 G`row' = (i2_hksj) H`row' = (p_i2_hksj) I`row' = (p_harbord_hksj) ///
+		 J`row' = (p_egger_hksj) K`row' = ("`RR_ci_reml'") L`row' = (p_reml)
+     
+
+* Increase row number for next iteration
+local row = `row' + 1
+}
+
+
+* Rotate to FPR sheet and add legends
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\SuppTable6.xlsx", sheet("Results FPR") modify
+
+putexcel A20 = "FIT faecal immunochemical test"
+putexcel A21 = "gFOBT guaiac faecal occult blood test" 
+putexcel A22 = "n number"
+putexcel A23 = "HKSJ Hartung-Knapp-Sidik-Jonkman adjustment"
+putexcel A24 = "CI confidence interval"
+putexcel A25 = "* t-test"
+putexcel A26 = "† z-test"
+
+* Rotate to PPV sheet and add legends
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\SuppTable6.xlsx", sheet("Results PPV") modify
+
+putexcel A63 = "FIT faecal immunochemical test"
+putexcel A64 = "gFOBT guaiac faecal occult blood test"
+putexcel A65 = "n number"
+putexcel A66 = "HKSJ Hartung-Knapp-Sidik-Jonkman adjustment"
+putexcel A67 = "CI confidence interval"
+putexcel A68 = "* t-test"
+putexcel A69 = "† z-test"
