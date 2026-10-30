@@ -1,0 +1,17 @@
+*******************************
+***Inspecting data without sufficient data for meta-analysis
+*******************************
+
+clear
+
+* Set working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR"
+
+* Calling the cleansed dataset
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\Final files first and updated search\FPdatasetCleansed"
+
+* tagging rows with information to calculate either of the two outcomes
+gen tagPPV = 1 if num_TP_ref !=. & num_FP_ref !=.
+gen tagFPR = 1 if num_FP_ref !=. & num_TN_ref !=.
+drop if tagPPV==1 | tagFPR==1 
+sum study_number
