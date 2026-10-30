@@ -1,0 +1,49 @@
+
+*********************************************************
+*** Creating a dataset for making a figures 2 and 3 in R.
+********************************************************
+clear
+
+import excel "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\SuppTable6.xlsx", sheet("Results PPV") firstrow
+
+gen Outcome="PPV"
+
+drop if strpos(Riskfactor, "Age (")>0
+
+tempfile PPV
+save `PPV'
+
+import excel "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\SuppTable6.xlsx", sheet("Results FPR") firstrow clear
+
+gen Outcome="FPR"
+
+//replace Riskfactor="Age in 5 year increments" if nstudies==15
+drop if strpos(Riskfactor, "Age (")>0
+drop if strpos(Riskfactor, "Antithr")>0 //dropping riskfactor with close to identical data as antiplatelet
+
+append using `PPV'
+
+keep Riskfactor Faecaltest nstudies Totalnparticipants EffectsizeHKSJ95CI Outcome
+
+append using "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\For R\FPRregfortable.dta"
+
+replace Outcome="FPR" if strpos(Riskfactor,"Age in 5-year intervals") >0
+replace Totalnparticipants=4599441 if strpos(Riskfactor,"Age in 5-year intervals") >0
+
+append using "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\For R\PPVregfortable.dta"
+
+replace Outcome="PPV" if nstudies==33
+replace Totalnparticipants=6583575  if nstudies==33
+
+replace Outcome="PPV" if nstudies==15 & strpos(Faecaltest, "gFOBT") >0
+replace Totalnparticipants=93722  if nstudies==15 & strpos(Faecaltest, "gFOBT") >0
+
+drop I2HKSJ PI2HKSJ
+
+sort Outcome Faecaltest Riskfactor
+
+replace EffectsizeHKSJ95CI = subinstr(EffectsizeHKSJ95CI, " - ", "–", .)
+
+save "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\For R\OveralltableforR", replace
+
+export delimited "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\For R\OveralltableforR", replace
