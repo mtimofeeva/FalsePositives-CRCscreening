@@ -1,0 +1,337 @@
+**********************************
+** Absolute risk calculations ****
+**********************************
+clear
+
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output"
+
+*******************
+**FPR
+*******************
+
+* Create excel sheet for analysis results
+putexcel set "Absoluterisks.xlsx", sheet("FPR") modify
+
+putexcel A4 = ("Risk factor") B4 = ("Faecal test") C3 = ("Prevalence") ///
+         C3 = ("Prevalence") C4 = ("Without risk factor") D4 = ("Lower 95% CI") ///
+		 E4 = ("Upper 95% CI") F4 = ("With risk factor") G4 = ("Lower 95% CI") ///
+		 H4 = ("Upper 95% CI") I3 = ("Overall risk") J4 = ("Lower 95% CI") ///
+		 K4 = ("Upper 95% CI") L3 = ("Absolute risk")  ///
+		 L4 = ("Without risk factor") M4 = ("Lower 95% CI") N4 = ("Upper 95% CI") ///
+		 O4 = ("With risk factor") P4 = ("Lower 95% CI") Q4 = ("Upper 95% CI") ///
+		 R3 = ("Absolute difference") S4 = ("Lower 95% CI") T4 = ("Upper 95% CI")
+
+**********
+**Age
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\fpr_fit_50-54vs65-69.dta", clear
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforFPRabsoluterisks.do"
+
+*export to Excel
+local row = 5
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+		
+**********
+**Antiplatelet agent
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\fpr_fit_antiplatelet.dta", clear
+
+keep if strpos(popu, "pop") >0 //keep only studies with population-based data
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforFPRabsoluterisks.do"
+
+*export to Excel
+local row = 6
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+
+**********
+**Aspirin
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\fpr_fit_aspirin.dta", clear
+
+keep if strpos(popu, "pop") >0 //keep only studies with population-based data
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforFPRabsoluterisks.do"
+
+*export to Excel
+local row = 7
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+
+		
+**********
+**Sex
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\fpr_fit_sex.dta", clear
+
+keep if strpos(popu, "pop") >0 //keep only studies with population-based data
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforFPRabsoluterisks.do"
+
+*export to Excel
+local row = 8
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+		
+*******************
+**PPV
+*******************
+* Create excel sheet for analysis results
+putexcel set "Absoluterisks.xlsx", sheet("PPV") modify
+
+putexcel A4 = ("Risk factor") B4 = ("Faecal test") C3 = ("Prevalence") ///
+         C3 = ("Prevalence") C4 = ("Without risk factor") D4 = ("Lower 95% CI") ///
+		 E4 = ("Upper 95% CI") F4 = ("With risk factor") G4 = ("Lower 95% CI") ///
+		 H4 = ("Upper 95% CI") I3 = ("Overall risk") J4 = ("Lower 95% CI") ///
+		 K4 = ("Upper 95% CI") L3 = ("Absolute risk")  ///
+		 L4 = ("Without risk factor") M4 = ("Lower 95% CI") N4 = ("Upper 95% CI") ///
+		 O4 = ("With risk factor") P4 = ("Lower 95% CI") Q4 = ("Upper 95% CI") ///
+		 R3 = ("Absolute difference") S4 = ("Lower 95% CI") T4 = ("Upper 95% CI")
+
+************
+**FIT
+************
+
+**********
+**Age
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_fit_age50-54vs70-74.dta", clear
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 5
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+
+**********
+**Alcohol
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_fit_alc0vs2.dta", clear
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 6
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)		
+		
+**********
+**Antiplatelet agent
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_fit_antiplatelet.dta", clear
+
+keep if strpos(popu, "pop") >0 //keep only studies with population-based data
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 7
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+
+**********
+**Aspirin
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_fit_aspirin.dta", clear
+
+keep if strpos(popu, "pop") >0 //keep only studies with population-based data
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 8
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+		
+**********
+**Constipation
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_fit_constipation.dta", clear
+
+keep if strpos(popu, "pop") >0 //keep only studies with population-based data
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 9
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+				
+
+**********
+**Diabetes mellitus
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_fit_diabetes.dta", clear
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 10
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+		
+**********
+**Metabolic syndrome
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_fit_metsyn.dta", clear
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 11
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+
+**********
+**Proton pump inhibitors
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_fit_ppi.dta", clear
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 12
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+
+**********
+**Sex
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_fit_sex.dta", clear
+
+keep if strpos(popu, "pop") >0 //keep only studies with population-based data
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 13
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)	
+
+***********
+**gFOBT and FIT
+************
+
+**********
+**Sex
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_gfobtfit_sex.dta", clear
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 14
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+
+***********
+**gFOBT
+************
+		
+**********
+**Age (50-54 vs. 65-69)
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_gfobt_age50-54vs65-69.dta", clear
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 15
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
+		
+**********
+**Sex
+**********
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV\ppv_gfobt_sex.dta", clear
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+do "${dofolder}\MagicforPPVabsoluterisks.do"
+
+*export to Excel
+local row = 16
+putexcel A`row' = (rf) B`row' = (gfobt_fit) F`row' = (prev_rf) G`row' = (prev_rf_lb) H`row' = (prev_rf_ub) ///
+		C`row' = (prev_ref) D`row' = (prev_ref_lb) E`row' = (prev_ref_ub) ///
+		I`row' = (overallrisk) J`row' = (overallrisk_lb) K`row' = (overallrisk_ub) ///
+		L`row' = (absref) M`row' = (absref_lb) N`row' = (absref_ub) ///
+		O`row' = (abscomp) P`row' = (abscomp_lb) Q`row' = (abscomp_ub) /// 
+		R`row' = (absdiff) S`row' = (absdiff_lb) T`row' = (absdiff_ub)
