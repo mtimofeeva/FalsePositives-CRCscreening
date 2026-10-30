@@ -1,0 +1,26 @@
+***************************************
+** Make identical table design for ****
+** all regression results *************
+***************************************
+
+putexcel A2 = ("Risk factor") B2 = ("Faecal test") C2 = ("n studies") ///
+         D2 = ("Coefficient, HKSJ (95% CI)") E2 = ("p-value*, HKSJ") ///
+		 F2 = ("I2 residual") G2 = ("p-value I2") ///
+		 A3 = ("Age in 5-year intervals") B3 = ("FIT")
+
+scalar n_studies = e(N)
+scalar p_value = e(p)
+scalar I2_res = round(e(I2_res), 0.01)
+scalar p_I2_res = e(p_Q_res)
+
+putexcel C3 = (n_studies)
+putexcel E3 = (p_value)
+putexcel F3 = I2_res
+putexcel G3 = p_I2_res
+
+* legends
+putexcel A5 = "FIT faecal immunochemical test"
+putexcel A6 = "n number"
+putexcel A7 = "HKSJ Hartung-Knapp-Sidik-Jonkman adjustment"
+putexcel A8 = "CI confidence interval"
+putexcel A9 = ("* t-test")
