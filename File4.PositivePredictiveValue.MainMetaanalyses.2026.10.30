@@ -1,0 +1,164 @@
+clear
+
+* working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV"
+
+* Create Word document
+putdocx clear
+putdocx begin
+putdocx paragraph, style(Heading1)
+putdocx text ("Forest and Funnel plots")
+
+* Create excel sheet for analysis results
+putexcel set "SuppTable3b.xlsx", replace sheet("Results PPV")
+
+putexcel A1 = ("Risk factor") B1 = ("Faecal test") C1 = ("n studies") ///
+         D1 = ("Total n participants") E1 = ("Effect size, HKSJ (95%CI)") ///
+		 F1 = ("I2, HKSJ") G1 = ("P I2, HKSJ") ///
+         H1 = ("P Harbord, HKSJ") I1 = ("P Egger, HKSJ") J1 = ("Effect size, REML (95%CI)") ///
+
+
+local files : dir . files "*.dta"
+
+local row = 2
+local ii = 0
+
+local prev_testtype ""
+
+foreach file of local files {
+	
+	local ii= `ii' +1
+	dis `ii'
+    local name = subinstr("`file'", ".dta", "", .)
+    use "`file'", clear
+	* Excluding studies with symptomatic and/or surveillance populations
+	keep if strpos(popu, "pop") >0
+	if _N <= 1 continue
+
+	
+	* get test type from dataset
+local gfobt_fit : display "`=gfobt_fit[1]'"
+	
+* Test if test type changed and insert new subheading if necessary
+if "`gfobt_fit'" != "`prev_testtype'" {
+    putdocx paragraph, style(Heading2)
+    putdocx text ("Positive predictive values – `gfobt_fit'")
+    local prev_testtype "`gfobt_fit'"
+	}
+	
+* Get name of risk factor for word document
+local rfname : display "`=rf[1]'"
+
+    * Meta-analysis HKSJ
+    meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+	meta summarize, se(khartung) nostudies
+
+	scalar n_studies = r(N)
+    scalar eff_hksj = r(theta)
+    scalar lb_hksj = r(ci_lb)
+    scalar ub_hksj = r(ci_ub)
+    scalar i2_hksj = r(I2)
+    scalar p_i2_hksj = r(p_Q)
+
+    local eff_ci_hksj = string(eff_hksj, "%5.2f") + " (" + ///
+                        string(lb_hksj, "%5.2f") + "–" + ///
+                        string(ub_hksj, "%5.2f") + ")"
+* exponentiation of log-results
+scalar RR_hksj = exp(eff_hksj)
+scalar RR_lb_hksj = exp(lb_hksj)
+scalar RR_ub_hksj = exp(ub_hksj)
+
+local RR_ci_hksj = string(RR_hksj, "%5.2f") + " (" + ///
+                   string(RR_lb_hksj, "%5.2f") + "–" + ///
+                   string(RR_ub_hksj, "%5.2f") + ")"
+
+    meta forestplot, se(khartung) eform nullrefline esrefline cibind(parentheses)
+    gr export Forest_plot_`name'_HKSJ.png, replace
+
+    meta funnelplot
+    gr export Funnel_plot_`name'_HKSJ.png, replace
+    
+	* Small study bias tests
+		* only run Eggers and Harbord if more than 2 studies
+	if  (`ii' == 1 | `ii' == 8 | `ii' == 9 | `ii' == 10 | `ii' == 11 | `ii' == 12 | `ii' == 14 | `ii' == 18 | `ii' == 19 | `ii' == 20 | `ii' == 21 | `ii' == 22 |`ii' == 23 | `ii' == 24 |`ii' == 26 | `ii' == 28 | `ii' == 29 |`ii' == 30 | `ii' == 31 | `ii' == 37 | `ii' == 43 | `ii' == 50 | `ii' == 51 | `ii' == 52 | `ii' == 54 | `ii' == 55 | `ii' == 56) {
+		scalar p_egger_hksj = .
+		scalar p_harbord_hksj = .
+	}
+    else {
+	meta bias, egger
+	scalar p_egger_hksj = r(p)
+	meta esize num_TP_comp num_FP_comp num_TP_ref num_FP_ref
+    meta bias, harbord
+    scalar p_harbord_hksj = r(p)
+	}
+
+    * 2. Meta-analysis REML
+	meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(logRR)
+	meta summarize
+
+	scalar eff_reml = r(theta)
+    scalar lb_reml = r(ci_lb)
+    scalar ub_reml = r(ci_ub)
+	scalar n_studies = r(N)
+	
+	local eff_ci_reml = string(eff_reml, "%5.2f") + " (" + ///
+                        string(lb_reml, "%5.2f") + "–" + ///
+                        string(ub_reml, "%5.2f") + ")"
+	
+	* exponentiation of log-results
+scalar RR_reml = exp(eff_reml)
+scalar RR_lb_reml = exp(lb_reml)
+scalar RR_ub_reml = exp(ub_reml)
+
+local RR_ci_reml = string(RR_reml, "%5.2f") + " (" + ///
+                   string(RR_lb_reml, "%5.2f") + "–" + ///
+                   string(RR_ub_reml, "%5.2f") + ")"
+	
+	meta forestplot, eform nullrefline esrefline cibind(parentheses)
+    gr export Forest_plot_`name'_REML.png, replace
+	meta funnelplot
+    gr export Funnel_plot_`name'_REML.png, replace
+	
+	* Small study bias tests
+		* only run Egger's and Harbord's if not having trouble converging during Tau2 estimation
+	if  (`ii' == 1 | `ii' == 8 | `ii' == 9 | `ii' == 10 | `ii' == 11 | `ii' == 12 | `ii' == 14 | `ii' == 18 | `ii' == 19 | `ii' == 20 | `ii' == 21 | `ii' == 22 |`ii' == 23 | `ii' == 24 |`ii' == 26 | `ii' == 28 | `ii' == 29 |`ii' == 30 | `ii' == 31 | `ii' == 37 | `ii' == 43 | `ii' == 50 | `ii' == 51 | `ii' == 52 | `ii' == 54 | `ii' == 55 | `ii' == 56) {
+		scalar p_egger_reml = .
+		scalar p_harbord_reml = .
+	}
+    else {
+	meta bias, egger
+	scalar p_egger_reml = r(p)
+	meta esize num_TP_comp num_FP_comp num_TP_ref num_FP_ref
+    meta bias, harbord
+    scalar p_harbord_reml = r(p)
+	}
+
+	* Insert forest og funnel plots in word
+putdocx paragraph
+putdocx text ("`rfname'")
+putdocx paragraph
+putdocx image "Forest_plot_`name'_HKSJ.png", width(8cm)
+putdocx image "Funnel_plot_`name'_HKSJ.png", width(8cm)
+
+* Paragraph
+putdocx paragraph
+	
+* calculate total participants
+	summarize num_participants
+	local total_participants = r(sum)
+	
+	* Put results to Excel
+	
+putexcel A`row' = (rf) ///
+         B`row' = (gfobt_fit) ///
+         C`row' = (n_studies) ///
+         D`row' = (`total_participants') E`row' = ("`RR_ci_hksj'") F`row' = (i2_hksj) G`row' = (p_i2_hksj) ///
+         H`row' = (p_harbord_hksj) I`row' = (p_egger_hksj) J`row' = ("`RR_ci_reml'") ///
+
+* Increase row number for next iteration
+local row = `row' + 1
+}
+
+* Save Word document
+putdocx save "Forest_and_Funnel_plotsPPV.docx", replace
