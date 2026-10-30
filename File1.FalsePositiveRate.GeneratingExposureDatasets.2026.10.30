@@ -1,0 +1,231 @@
+****************************************************************
+*Data selection for Primary outcome: False positive rates (FPR)*
+****************************************************************
+
+//This do-file is intended for calculating half of the primary outcomes (the ones possible to calculate based on the extracted false positive data). First, I will call the cleansed dataset and then pick out only the variables I need. Then, I will calculate false positive rates and their standard errors. Last, I will calculate the relative risks of FPRs.
+//Then for every risk factor available for meta-analysis I will select data and save it as a small datafile
+
+clear
+
+* Set working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR"
+
+* Calling the cleansed dataset and keeping only the variables I need for calculating the primary outcome (numbers of false positives and numbers of true negatives)
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\Final files first and updated search\FPdatasetCleansed"
+keep study_number author publication_year design gfobt_fit type cutoff def_true_positive population num_participants screening_round exp_ref_comp num_ref num_comp num_FP_ref num_FP_comp num_TN_ref num_TN_comp rob final_decision popu
+label variable publication_year "Year"
+label variable num_FP_ref "FP_ref"
+label variable num_TN_ref "TN_ref"
+label variable num_FP_comp "FP_comp"
+label variable num_TN_comp "TN_comp"
+
+* Keeping only the comparisons where the relevant metrics are available
+keep if final_decision=="Resolved" | final_decision=="Resolved. Exclude from PPV calculations" | final_decision=="Resolved. Only include in PPV analysis. Do not use for specificity" //Final_decision "Resolved" means that the study is eligible based on our protocol criteria. "Resolved, exclude from PPV calculations" means that the study is eligible but numbers only available for calculating FPR. "Resolved, only include in PPV analysis. Do not use for specificity" means that FN are not available and it cannot be used in the FN part of the study. But in the FP part it can.
+drop if exp_ref_comp=="Age (means compared)" | exp_ref_comp=="Age at screening (as a continious variable)" //Dropping exposures that are declared as resolved and thus eligible, but where numbers are presented as continous variable. Thus it is not possible to use in binary comparisons.
+drop if num_FP_ref==. | num_FP_comp==. | num_TN_ref==. | num_TN_comp==. //Dropping comparisons where numbers of FP or TN are not available
+
+* Inspecting and sorting the dataset
+sort author publication_year
+table exp_ref_comp if gfobt_fit=="FIT" //showing exposures available for calculations for studies testing with FIT
+table exp_ref_comp if gfobt_fit=="gFOBT" //Only gFOBT as the single test has numbers available for calculations
+
+* Calculate false positive rates for reference and comparison groups, respectively. These numbers are what is needed to go in the numerator and denominator. Then calculate RR of FPR with comparison group in numerator. Generate log-transformed RR of FPR to be used in funnel plots. And calculate standard errors (s.e.(logRR))
+gen FPR_ref = num_FP_ref/(num_FP_ref+num_TN_ref)
+label variable FPR_ref "False positive rate for reference group"
+gen FPR_comp = num_FP_comp/(num_FP_comp+num_TN_comp)
+label variable FPR_comp "False positive rate for comparison group"
+gen RR_FPR_comp_ref = FPR_comp/FPR_ref
+label variable RR_FPR_comp_ref "Relative risk of false positive rates in comparison group versus reference group"
+gen log_RR_FPR_comp_ref = log(RR_FPR_comp_ref)
+label variable log_RR_FPR_comp_ref "log-transformed relative risk of false positive rates in comparison group versus reference group"
+gen se = sqrt(1/num_FP_comp-1/(num_FP_comp+num_TN_comp)+1/num_FP_ref-1/(num_FP_ref+num_TN_ref))
+label variable se "Standard Error for logRR"
+
+* Generate variable of totalt participants to use for decisions on redundant populations
+gen total_part = num_TN_ref+num_FP_ref+num_TN_comp+num_FP_comp
+
+* Generate author, year variable for Forest plots
+gen author_year = author + ", " + string(publication_year)
+
+* Generate risk factor variable for tables
+gen str100 rf = ""
+
+* Preserving dataset
+preserve
+
+* Starting data selection. Beginning with the only variable available considering gFOBT
+* Sex (female vs. male)
+keep if (strpos(gfobt_fit, "gFOBT"))
+tab exp_ref_comp //ensure that only data with gFOBT is left
+replace rf = "Sex"
+save "fpr_gfobt_sex.dta", replace
+restore
+
+* Continuing with the same method for FIT FPR variables
+* Sex (female vs. male)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Sex"))
+drop if study_number==10 //dropping the Brenner study with the smallest population due to risk of redundant populations with other Brenner entry
+replace rf = "Sex"
+save "fpr_fit_sex.dta", replace
+restore
+
+* Age 50-54 vs. 55-59 (50-55 vs. 56-60 in one of the studies)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Age"))
+keep if study_number==119 | study_number==14 | study_number==134
+drop if (strpos(exp_ref_comp, "61")) | (strpos(exp_ref_comp, "66")) | (strpos(exp_ref_comp, "65")) | (strpos(exp_ref_comp, "64")) | (strpos(exp_ref_comp, "70"))
+replace author_year = "Digby, 2023, males" if (strpos(exp_ref_comp, "Age in men (50-54 vs. 55-59)"))>0
+replace author_year = "Digby, 2023, females" if (strpos(exp_ref_comp, "Age in women (50-54 vs. 55-59)"))>0
+replace author_year = "Njor, 2022, males" if (strpos(exp_ref_comp, "Age at screening in men (50-54 vs. 55-59)"))>0
+replace author_year = "Njor, 2022, females" if (strpos(exp_ref_comp, "Age at screening in women (50-54 vs. 55-59)"))>0
+replace rf = "Age (50-54 vs. 55-59)"
+save "fpr_fit_50-54vs55-59.dta", replace
+restore
+
+* Age 50-54 vs. 60-64 (50-55 vs. 61-65 in one of the studies)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Age"))
+keep if study_number==119 | study_number==14 | study_number==134
+drop if (strpos(exp_ref_comp, "56")) | (strpos(exp_ref_comp, "66")) | (strpos(exp_ref_comp, "59")) | (strpos(exp_ref_comp, "70")) | (strpos(exp_ref_comp, "69"))
+replace author_year = "Digby, 2023, males" if (strpos(exp_ref_comp, "Age in men (50-54 vs. 60-64)"))>0
+replace author_year = "Digby, 2023, females" if (strpos(exp_ref_comp, "Age in women (50-54 vs. 60-64)"))>0
+replace author_year = "Njor, 2022, males" if (strpos(exp_ref_comp, "Age at screening in men (50-54 vs. 60-64)"))>0
+replace author_year = "Njor, 2022, females" if (strpos(exp_ref_comp, "Age at screening in women (50-54 vs. 60-64)"))>0
+replace rf = "Age (50-54 vs. 60-64)"
+save "fpr_fit_50-54vs60-64.dta", replace
+restore
+
+* Age 50-54 vs. 65-69 (50-55 vs. 65-70 in one of the studies)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Age"))
+keep if study_number==119 | study_number==14 | study_number==134
+drop if (strpos(exp_ref_comp, "74")) | (strpos(exp_ref_comp, "60")) | (strpos(exp_ref_comp, "59")) | (strpos(exp_ref_comp, "61")) | (strpos(exp_ref_comp, "56"))
+replace author_year = "Digby, 2023, males" if (strpos(exp_ref_comp, "Age in men (50-54 vs. 65-69)"))>0
+replace author_year = "Digby, 2023, females" if (strpos(exp_ref_comp, "Age in women (50-54 vs. 65-69)"))>0
+replace author_year = "Njor, 2022, males" if (strpos(exp_ref_comp, "Age at screening in men (50-54 vs. 65-69)"))>0
+replace author_year = "Njor, 2022, females" if (strpos(exp_ref_comp, "Age at screening in women (50-54 vs. 65-69)"))>0
+replace rf = "Age (50-54 vs. 65-69)"
+save "fpr_fit_50-54vs65-69.dta", replace
+restore
+
+* Age <65 vs. =>65 (50-64 vs.65-79 in one of the studies))
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Age"))
+keep if study_number==1 | study_number==22
+replace rf = "Age (<65 vs. ≥65)"
+save "fpr_fit_bel65vsab65.dta", replace
+restore
+
+* Age 50-59 vs. 60-69
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Age"))
+keep if study_number==115 | study_number==46 | study_number==139
+drop if (strpos(exp_ref_comp, "70"))
+replace author_year = "Chen, 2018, males" if (strpos(exp_ref_comp, "Age in males (50-59 vs. 60-69)"))>0
+replace author_year = "Chen, 2018, females" if (strpos(exp_ref_comp, "Age in females (50-59 vs. 60-69)"))>0
+replace rf = "Age (50-59 vs. 60-69)"
+save "fpr_fit_50-59vs60-69.dta", replace
+restore
+
+* Medications
+* Aspirin monotherapy (no vs. yes)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Aspirin"))
+drop if (strpos(exp_ref_comp, "+"))
+drop if (strpos(type, "Ridascreen Haemo-/Haptoglobin Complex")) //dropping the least common test type in the study where the same population has been tested with two tests
+drop if study_number==23 //dropping the study with the smallest population in case where there is risk of redundant populations
+replace rf = "Aspirin"
+save "fpr_fit_aspirin.dta", replace
+restore
+
+* Antiplatelet agent (no vs. yes)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Aspirin")) | (strpos(exp_ref_comp, "Antiplatelet")) | (strpos(exp_ref_comp, "Cilostazol")) | (strpos(exp_ref_comp, "Clopodogrel")) | (strpos(exp_ref_comp, "Dual")) | (strpos(exp_ref_comp, "NSAIDs")) | (strpos(exp_ref_comp, "Triple")) | (strpos(exp_ref_comp, "Warfarin"))
+drop if (strpos(type, "Ridascreen Haemo-/Haptoglobin Complex")) //dropping the least common test type in the study where the same population has been tested with two tests
+drop if study_number==90 & (strpos(exp_ref_comp, "Aspirin")) //dropping one of the lines in Ibuka study where there is a risk of overlapping controls
+drop if study_number==92 & strpos(exp_ref_comp, "Antiplatelet agent (no vs. yes)")==0 //dropping the exposure list of the Jung study while letting only the antiplatelet agent exposure be left. Due to the matching method described in the study there is risk of overlapping controls.
+drop if study_number==23 //dropping the study with the smallest population in case where there is risk of redundant populations
+replace rf = "Antiplatelet agent"
+save "fpr_fit_antiplatelet.dta", replace
+restore
+
+* Antithrombotic drug (no vs. yes)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Aspirin")) | (strpos(exp_ref_comp, "Antiplatelet")) | (strpos(exp_ref_comp, "Cilostazol")) | (strpos(exp_ref_comp, "Clopodogrel")) | (strpos(exp_ref_comp, "Dual")) | (strpos(exp_ref_comp, "NSAIDs")) | (strpos(exp_ref_comp, "Triple")) | (strpos(exp_ref_comp, "Warfarin")) | (strpos(exp_ref_comp, "Antithrombotic")) | (strpos(exp_ref_comp, "NSAIDs"))
+drop if (strpos(type, "Ridascreen Haemo-/Haptoglobin Complex")) //dropping the least common test type in the study where the same population has been tested with two tests
+drop if study_number==90 & (strpos(exp_ref_comp, "Aspirin")) | study_number==90 & (strpos(exp_ref_comp, "Antiplatelet")) //dropping one of the lines in Ibuka study where there is a risk of overlapping controls keeping only the overall category "antithrombotic agent"
+drop if study_number==92 & strpos(exp_ref_comp, "Antiplatelet agent (no vs. yes)")==0 //dropping the exposure list of the Jung study while letting only the antiplatelet agent exposure be left. Due to the matching method described in the study there is risk of overlapping controls.
+drop if study_number==23 //dropping the Brenner study with the smallest population in case where there is risk of redundant populations
+replace rf = "Antithrombotic agent"
+save "fpr_fit_antithrombotic.dta", replace
+restore
+
+* Proton pump inhibitors (no vs. yes)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp,"pump"))
+drop if study_number==41 & (strpos(cutoff, "120"))
+drop if study_number==41 & (strpos(cutoff, "80"))
+drop if study_number==41 & (strpos(cutoff, "100"))
+replace rf = "Proton pump inhibitors"
+save "fpr_fit_ppi.dta", replace
+restore
+
+* Diseases/symptoms
+*  Hypertension (no vs. yes)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp,"Hypertension"))
+replace rf = "Hypertension"
+save "fpr_fit_hypertension.dta", replace
+restore
+
+* Family history of CRC (no vs. yes)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp,"Family"))
+replace rf = "Family history of CRC"
+save "fpr_fit_famcrc.dta", replace
+restore
+
+* Metabolic syndrome (no vs. yes)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp,"syndrome"))
+replace author_year = "Chang, 2014, males" if (strpos(exp_ref_comp, "Metabolic syndrome in men (no vs. yes)"))>0
+replace author_year = "Chang, 2014, females" if (strpos(exp_ref_comp, "Metabolic syndrome in women (no vs. yes)"))>0
+replace rf = "Metabolic syndrome"
+save "fpr_fit_metsynd.dta", replace
+restore
+
+* Smoking (never vs. current/past)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Smoking"))
+keep if (strpos(exp_ref_comp, "Smoking (never vs. current/past)")) | (strpos(exp_ref_comp, "Smoking (never vs. past)")) | (strpos(exp_ref_comp, "Smoking (no vs. current/past)")) //keeping only studies with the same definition (other studies have past smoking in their no-smoking group)
+replace rf = "Smoking (never vs. ever)"
+save "fpr_fit_smokingnevervsever.dta", replace
+restore
+
+* Diabetes mellitus (no vs. yes)
+preserve
+drop if (strpos(gfobt_fit, "gFOBT"))
+keep if (strpos(exp_ref_comp, "Diabetes"))
+replace rf = "Diabetes mellitus"
+save "fpr_fit_diabetes.dta", replace
+restore
+
+* descriptives on FPR data
+table gfobt_fit
+
+
