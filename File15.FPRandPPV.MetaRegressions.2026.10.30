@@ -1,0 +1,506 @@
+***************************************
+*** Meta-regressions of age 		***
+***************************************
+clear
+
+***************************************
+//AGE - FALSE POSITIVE RATES - FIT //
+***************************************
+* working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR"
+
+global dofolder "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\do"
+
+* Create Word document
+putdocx clear
+putdocx begin
+putdocx paragraph, style(Heading1)
+putdocx text ("Bubble plots")
+
+* using/appending dataset with age in 5-year age groups and generating/replacing
+* new variable to indicate comparison of increasing age groups.
+use "fpr_fit_50-54vs55-59.dta"
+gen agecovariate = 1
+
+append using "fpr_fit_50-54vs60-64.dta"
+replace agecovariate = 2 if agecovariate ==.
+
+append using "fpr_fit_50-54vs65-69.dta"
+replace agecovariate = 3 if agecovariate ==.
+
+* saving dataset
+save "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\FPR_reg.dta", replace
+
+* declaring data for meta-analysis
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+
+* performing meta-regression
+meta regress agecovariate, se(khartung) eform
+
+* calculate total participants
+gsort study_number -num_participants //sorting number of participants in descending order
+by study_number: gen tag = _n == 1 //tagging first entry
+count if tag //check that number of rows is 3
+quietly sum num_participants if tag
+display r(sum) //summing and displaying total number of participants included in the meta-regression
+
+quietly sum num_participants //summing everything although 50-54 group is counted multiple times
+display r(sum)
+
+* creating bubble plots
+estat bubbleplot
+gr export Bubble_FPR.png, replace
+putdocx paragraph, style(Heading2)
+putdocx text ("False positive rates – FIT - Bubble plots")
+putdocx image "Bubble_FPR.png", width(16cm)
+
+estat bubbleplot, mlabel(study_number)
+
+* Create excel sheet for analysis results and put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("FPR") modify
+
+meta regress agecovariate, se(khartung) eform
+
+do "$dofolder\Rtable.do"
+
+do "$dofolder\ExcelReg.do"
+
+putexcel A1 = "Meta regression of relative risks of false positive rates with age in 5-year intervals as covariate"
+
+*****************
+* performing sensitivity analyses
+** excluding studies at high risk of bias
+tab rob // !no studies at high risk of bias!
+
+** excluding studies with slightly different grouping of age
+tab exp_ref_comp
+drop if strpos(exp_ref_comp, "50-55") >0
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* Create excel sheet for analysis results
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("FPR_sens") modify
+
+* put data to Excel
+do "$dofolder\Rtable.do"
+
+do "$dofolder\ExcelReg.do"
+
+putexcel A1 = "Meta regression of relative risks of false positive rates with age in 5-year intervals as covariate. Sensitivity analysis excluding studies grouping age slighty differently"
+
+* creating bubble plot
+estat bubbleplot
+gr export Bubble_FPR_sens.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Sensitivity analysis excluding study grouping 50-55")
+putdocx image "Bubble_FPR_sens.png", width(16cm)
+
+** excluding studies with missing information in any of the test characteristics
+tab type
+tab cutoff
+tab def_true_positive
+tab population
+// 6 observations have NR in type. Excluding this will make the dataset too small for meta-analysis.
+
+****************
+* performing stratified analyses
+* reload full dataset
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\FPR_reg.dta", clear
+
+* check for number of studies in each strata
+tab type //!too few in every strata to stratify!
+tab cutoff //!too few in every strata to stratify!
+tab screening_round //!too few in every strata to stratify!
+tab def_true_positive //cancer only sufficient to stratify
+drop if strpos(def_true_positive, "advanced") >0
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* Create excel sheet for analysis results and put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("FPR_stra") modify
+
+do "$dofolder\Rtable.do"
+
+do "$dofolder\ExcelReg.do"
+
+putexcel A1 = "Meta regression of relative risks of false positive rates with age in 5-year intervals as covariate. Stratified analysis of studies defining a true positive test as cancer only"
+
+* creating bubble plot
+estat bubbleplot
+gr export Bubble_FPR_stra.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis showing only 'cancer only' as definition of true positive")
+putdocx image "Bubble_FPR_stra.png", width(16cm)
+
+***************************************
+//AGE - POSITIVE PREDICTIVE VALUES - FIT //
+***************************************
+
+clear
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV"
+
+* using/appending dataset with age in 5-year age groups and generating/replacing
+* new variable to indicate comparison of increasing age groups.
+use "ppv_fit_age50-54vs55-59.dta"
+gen agecovariate = 1
+
+append using "ppv_fit_age50-54vs60-64.dta"
+replace agecovariate = 2 if agecovariate ==.
+
+append using "ppv_fit_age50-54vs65-69.dta"
+replace agecovariate = 3 if agecovariate ==.
+
+append using "ppv_fit_age50-54vs70-74.dta"
+replace agecovariate = 4 if agecovariate ==.
+
+* saving dataset
+save "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_reg.dta", replace
+
+* declaring data for meta-analysis
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+
+* performing meta-regression
+meta regress agecovariate, se(khartung) eform
+
+* calculate total participants
+gsort study_number -num_participants //sorting number of participants in descending order
+by study_number: gen tag = _n == 1 //tagging first entry
+count if tag //check that number of rows is 8
+quietly sum num_participants if tag
+display r(sum) //summing and displaying total number of participants included in the meta-regression
+
+quietly sum num_participants //summing everything although 50-54 group is counted multiple times
+display r(sum)
+
+* make bubbleplot
+estat bubbleplot
+gr export Bubble_PPV.png, replace
+putdocx paragraph, style(Heading2)
+putdocx text ("Positive predictive values – FIT - Bubble plots")
+putdocx image "Bubble_PPV.png", width(16cm)
+
+estat bubbleplot, mlabel(study_number) //inspecting by study number
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPV") modify
+
+meta regress agecovariate, se(khartung) eform
+
+do "$dofolder\Rtable.do"
+
+do "$dofolder\ExcelReg.do"
+
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate"
+
+*****************
+* performing sensitivity analyses
+** excluding studies at high risk of bias
+tab rob // !no studies at high risk of bias
+
+** excluding studies with slightly different grouping of age
+table exp_ref_comp // !no studies grouping differently
+
+** excluding studies with missing information in any of the test characteristics
+tab type // NR = 12 observations
+tab cutoff // NR = 0
+tab def_true_positive // NR = 0
+tab population // NR = 0
+drop if type == "NR" | cutoff == "NR" | def_true_positive == "NR" | population == "NR"
+
+* perform meta-regression
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPV_sens") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReg.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Sensitivity analysis excluding studies with any missing information for test characteristics"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPV_sens1.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Sensitivity analysis excluding studies with any missing information for test characteristics")
+putdocx image "Bubble_PPV_sens1.png", width(16cm)
+
+*****************
+* performing stratified analyses
+*reload full dataset 
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_reg.dta", clear
+
+* check for number of studies in each strata
+tab type // "NR" and "OC-Sensor" has enough studies
+tab cutoff //!too few in every strata to stratify!
+tab screening_round //"prevant" has enough studies
+tab def_true_positive //"advanced neoplasms" and "cancer only" has enough studies
+
+* stratifying type "NR"
+keep if strpos(type, "NR") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPV_stra1") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReg.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies not reporting test type"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPV_stra1.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - type 'NR'")
+putdocx image "Bubble_PPV_stra1.png", width(16cm)
+
+* stratify type "OC-Sensor"
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_reg.dta", clear
+keep if strpos(type, "OC-Sensor") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPV_stra2") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReg.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies using the test type OC-Sensor"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPV_stra2.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - type 'OC-Sensor'")
+putdocx image "Bubble_PPV_stra2.png", width(16cm)
+
+* stratify screening round "prevalent"
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_reg.dta", clear
+keep if strpos(screening_round, "prevalent") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPV_stra3") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReg.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies presenting data from the prevalent screening round"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPV_stra3.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - screening round 'prevalent'")
+putdocx image "Bubble_PPV_stra3.png", width(16cm)
+
+* stratify definition of true positive "advanced neoplasms"
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_reg.dta", clear
+keep if strpos(def_true_positive, "advanced neoplasms") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPV_stra4") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReg.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies defining a true positive test as advanced neoplasms"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPV_stra4.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - definition of a true positive test 'advanced neoplasms'")
+putdocx image "Bubble_PPV_stra4.png", width(16cm)
+
+* stratify definition of true positive "cancer only"
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_reg.dta", clear
+keep if strpos(def_true_positive, "cancer only") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPV_stra5") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReg.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies defining a true positive test as cancer only"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPV_stra5.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - definition of a true positive test 'cancer only'")
+putdocx image "Bubble_PPV_stra5.png", width(16cm)
+
+***************************************
+//AGE - POSITIVE PREDICTIVE VALUES - gFOBT //
+***************************************
+clear
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\PPV"
+
+* using/appending dataset with age in 5-year age groups and generating/replacing
+* new variable to indicate comparison of increasing age groups.
+use "ppv_gfobt_age50-54vs55-59.dta"
+gen agecovariate = 1
+
+append using "ppv_gfobt_age50-54vs60-64.dta"
+replace agecovariate = 2 if agecovariate ==.
+
+append using "ppv_gfobt_age50-54vs65-69.dta"
+replace agecovariate = 3 if agecovariate ==.
+
+append using "ppv_gfobt_age50-54vs70-74.dta"
+replace agecovariate = 4 if agecovariate ==.
+
+* saving dataset
+save "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_gfobtreg.dta", replace
+
+* declaring data for meta-analysis
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+
+* performing meta-regression
+meta regress agecovariate, se(khartung) eform
+
+* calculate total participants
+gsort study_number -num_participants //sorting number of participants in descending order
+by study_number: gen tag = _n == 1 //tagging first entry
+count if tag //check that number of rows is 4
+quietly sum num_participants if tag
+display r(sum) //summing and displaying total number of participants included in the meta-regression
+
+quietly sum num_participants //summing everything although 50-54 group is counted multiple times
+display r(sum)
+
+* make bubbleplot
+estat bubbleplot
+gr export Bubble_PPVgfobt.png, replace
+putdocx paragraph, style(Heading2)
+putdocx text ("Positive predictive values – gFOBT - Bubble plots")
+putdocx image "Bubble_PPV.png", width(16cm)
+
+estat bubbleplot, mlabel(study_number) //inspecting by study number
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPVgFOBT") modify
+
+meta regress agecovariate, se(khartung) eform
+
+do "$dofolder\Rtable.do"
+
+do "$dofolder\ExcelReggFOBT.do"
+
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate"
+
+*****************
+* performing sensitivity analyses
+** excluding studies at high risk of bias
+tab rob // !too many studies at high risk of bias to perform meta-regression with remaining
+
+** excluding studies with missing information in any of the test characteristics
+tab type // NR = 0
+tab cutoff // NR = 0
+tab def_true_positive // NR = 0
+tab population // NR = 0
+// no missing information for test characteristics - sensitivity analysis not performed
+
+*****************
+* performing stratified analyses
+* check for number of studies in each strata
+tab type // both strata has enough studies
+tab cutoff //stratification by "At least 1 positive" possible
+tab screening_round //"incident" has enough studies
+tab def_true_positive //"cancer only" has enough studies
+
+* stratifying type "Hema-Screen"
+keep if strpos(type, "Hema-Screen") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPVgFOBT_stra1") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReggFOBT.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies using the test type Hema-Screen"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPVgFOBT_stra1.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - type 'Hema-Screen'")
+putdocx image "Bubble_PPVgFOBT_stra1.png", width(16cm)
+
+* stratify type "Hemoccult II"
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_gfobtreg.dta", clear
+keep if strpos(type, "Hemoccult II") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPVgOFBT_stra2") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReggFOBT.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies using the test type Hemoccult II"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPVgFOBT_stra2.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - type 'Hemoccult II'")
+putdocx image "Bubble_PPVgFOBT_stra2.png", width(16cm)
+
+* stratify cutoff "At least 1 positive"
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_gfobtreg.dta", clear
+keep if strpos(cutoff, "At least 1 positive") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPVgFOBT_stra3") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReggFOBT.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies presenting data from cutoffs of 'At least 1 positive'"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPVgFOBT_stra3.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - cutoff 'At least 1 positive'")
+putdocx image "Bubble_PPVgFOBT_stra3.png", width(16cm)
+
+* stratify screening round "prevalent"
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_gfobtreg.dta", clear
+keep if strpos(screening_round, "incident") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPVgFOBT_stra4") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReggFOBT.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies presenting data from the incident screening round"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPVgFOBT_stra4.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - screening round 'incident'")
+putdocx image "Bubble_PPVgFOBT_stra4.png", width(16cm)
+
+* stratify definition of true positive "advanced neoplasms"
+use "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\Regressions\PPV_gfobtreg.dta", clear
+keep if strpos(def_true_positive, "cancer only") >0
+meta set log_RR_PPV_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta regress agecovariate, se(khartung) eform
+
+* put data to Excel
+putexcel set "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Regressions.xlsx", sheet("PPVgFOBT_stra5") modify
+do "$dofolder\Rtable.do"
+do "$dofolder\ExcelReggFOBT.do"
+putexcel A1 = "Meta regression of relative risks of positive predictive values with age in 5-year intervals as covariate. Stratified analysis of studies defining a true positive test as cancer only"
+
+* bubble plot
+estat bubbleplot
+gr export Bubble_PPVgFOBT_stra5.png, replace
+putdocx paragraph, style(Heading3)
+putdocx text ("Stratified analysis - definition of a true positive test 'cancer only'")
+putdocx image "Bubble_PPVgFOBT_stra5.png", width(16cm)
+
+* close and save word document
+putdocx save "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Bubbleplots.docx", replace
