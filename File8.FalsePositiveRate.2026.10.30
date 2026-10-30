@@ -1,0 +1,78 @@
+****************************************************************
+* Stratified analyses of RR of FPR
+****************************************************************
+clear
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR"
+
+local files : dir . files "*.dta"
+
+*--------------------------------------------------------------
+* Create results dataset
+*--------------------------------------------------------------
+
+tempfile results
+
+postfile handle ///
+str100 riskfactor ///
+str50 stratvar ///
+str100 stratum ///
+double(theta) ///
+double(cilb) ///
+double(ciub) ///
+double(i2) ///
+nstudies ///
+using `results', replace
+
+*--------------------------------------------------------------
+* Loop through datasets
+*--------------------------------------------------------------
+
+foreach file of local files {
+
+use "`file'", clear
+
+keep if strpos(popu, "pop") > 0
+if _N <= 1 continue
+
+local stratvars type cutoff def_true_positive screening_round
+
+foreach stratvar of local stratvars {
+
+capture noisily meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+
+capture noisily meta summarize, subgroup(`stratvar') se(khartung)
+
+if _rc continue
+
+matrix M = r(esgroup)
+matrix H = r(hetgroup)
+
+levelsof `stratvar', local(levels)
+
+local i = 1
+
+foreach lev of local levels {
+local theta = exp(M[`i',1])
+local cilb = exp(M[`i',3])
+local ciub = exp(M[`i',4])
+local i2 = H[`i',5]
+local n = H[`i',1] + 1
+post handle ("`file'") ("`stratvar'") ("`lev'") (`theta') (`cilb') (`ciub') (`i2') (`n')
+
+local ++i
+
+}
+
+}
+
+}
+
+*--------------------------------------------------------------
+* Save and export
+*--------------------------------------------------------------
+
+postclose handle
+
+use `results', clear
+
+export excel using "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR\stratified_analyses_FPRpoponly.xlsx", firstrow(variables) replace
