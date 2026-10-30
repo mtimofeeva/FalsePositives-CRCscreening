@@ -1,0 +1,72 @@
+**************************************************************
+* Do-file false positive outcomes Table 1                   *
+**************************************************************
+
+clear
+
+* 1. Set working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\Final files first and updated search"
+
+* 2. Calling the cleansed dataset and keeping the variables I need for a study characteristics table
+use "FPdatasetCleansed"
+keep study_number author publication_year gfobt_fit screening_regime country collection_period num_participants age sex_perc type cutoff def_true_positive final_decision
+
+* 3. Inspecting and sorting the dataset
+gsort study_number -num_participants //sorting data after study_number and num_participants in descending order
+bysort study_number (num_participants): keep if _n==1 //only keep first row of each study
+codebook study_number //counting the number of unique values = the number of studies included in the false positive dataset
+sort study_number author publication_year gfobt_fit screening_regime country collection_period num_participants age sex_perc type cutoff def_true_positive final_decision
+drop study_number final_decision
+gsort author -publication_year
+
+* 4. Defining columns
+label variable author "Author"
+label variable publication_year "Year"
+label variable screening_regime "Repetition"
+label variable country "Country"
+label variable collection_period "Data collection"
+label variable num_participants "Number of participants"
+label variable sex_perc "Sex (% male)"
+label variable type "Faecal test"
+label variable cutoff "Positivity cutoff"
+label variable def_true_positive "Definition of true positive test result"
+
+ds, has(type string)
+foreach var in `r(varlist)' {
+	if "`var'" != "gfobt_fit" {
+    replace `var' = upper(substr(`var', 1, 1)) + substr(`var', 2, .)
+	}
+}
+
+preserve
+
+* 5. Set new directory for the results files
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Results\Supplementary files"
+
+* 6. Making table for studies reporting data using FIT
+drop if (strpos(gfobt_fit, "gFOBT")) | (strpos(gfobt_fit, "gFOBT and FIT")) | (strpos(gfobt_fit, "NR"))
+codebook gfobt_fit // make sure that only FIT is included
+drop gfobt_fit
+export excel using "SuppTable2a.xlsx", firstrow(varlabels) replace
+restore, preserve
+
+* 7. Making table for studies reporting data using gFOBT
+drop if (strpos(gfobt_fit, "FIT")) | (strpos(gfobt_fit, "NR"))
+codebook gfobt_fit // make sure that only gFOBT is included
+drop gfobt_fit
+export excel using "SuppTable2b.xlsx", firstrow(varlabels) replace
+restore, preserve
+
+* 8. Making table for studies reporting data mixing the use of FIT and gFOBT
+keep if (strpos(gfobt_fit, "gFOBT and FIT"))
+codebook gfobt_fit // make sure that mix of gFOBT and FIT is included
+drop gfobt_fit
+export excel using "SuppTable2c.xlsx", firstrow(varlabels) replace
+restore, preserve
+
+* 9. Making table for study nor reporting faecal test type
+keep if (strpos(gfobt_fit, "NR"))
+codebook gfobt_fit // make sure that NR is included
+drop gfobt_fit
+export excel using "SuppTable2d.xlsx", firstrow(varlabels) replace
+restore, preserve
