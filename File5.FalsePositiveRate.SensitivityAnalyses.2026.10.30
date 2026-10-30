@@ -1,0 +1,172 @@
+clear
+* working directory
+cd "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\data\FPR"
+
+* Create Word document
+putdocx clear
+putdocx begin
+putdocx paragraph, style(Heading1)
+putdocx text ("Sensitivity analyses of relative risks of false positive rates")
+putdocx paragraph, style(Heading2)
+putdocx text ("FIT")
+
+
+*** Age (50-59 vs. 60-69) ******************************************************
+use "fpr_fit_50-59vs60-69.dta", clear
+drop if strpos(rob, "High") > 0
+
+    * Meta-analysis HKSJ
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+meta summarize, se(khartung) nostudies
+scalar p_hksj = r(p)
+display %9.2e p_hksj
+meta forestplot, se(khartung) eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-59vs60-69_HKSJ_sens.png", replace
+
+putdocx paragraph, style(Heading2)
+putdocx text ("Age (50-59 vs. 60-69)")
+putdocx paragraph, style(Heading3)
+putdocx text ("excluding studies at high risk of bias")
+putdocx paragraph
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-59vs60-69_HKSJ_sens.png", width(8cm)
+
+    * Meta-analysis REML due to only two studies not at high risk of bias
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+meta summarize
+scalar p_reml = r(p)
+display %9.2e p_reml
+meta forestplot, eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-59vs60-69_sens.png", replace
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-59vs60-69_sens.png", width(8cm)
+
+*** Age (50-54 vs. 60-64) FIT **************************************************
+* sensitivity analysis excluding one study with different grouping
+use "fpr_fit_50-54vs60-64.dta", clear
+keep if (strpos(exp_ref_comp, "50-54 vs. 60-64"))
+    * Meta-analysis HKSJ
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta summarize, se(khartung) nostudies
+scalar p_hksj = r(p)
+display %9.2e p_hksj
+meta forestplot, se(khartung) eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-54vs60-64_HKSJ_sens2.png", replace
+putdocx paragraph, style(Heading2)
+putdocx text ("Age (50-54 vs. 60-64)")
+putdocx paragraph, style(Heading3)
+putdocx text ("excluding study with slightly different grouping")
+putdocx paragraph
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-54vs60-64_HKSJ_sens2.png", width(8cm)
+
+    * Meta-analysis REML due to only two studies left
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+meta summarize
+scalar p_reml = r(p)
+display %9.2e p_reml
+meta forestplot, eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-54vs60-64_sens2.png", replace
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-54vs60-64_sens2.png", width(8cm)
+
+*** Age (50-54 vs. 65-69) ******************************************************
+
+	* Meta-analysis excluding one study with different grouping, HKSJ
+use "fpr_fit_50-54vs65-69.dta", clear
+keep if (strpos(exp_ref_comp, "50-54 vs. 65-69"))
+    * Meta-analysis HKSJ
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+meta summarize, se(khartung) nostudies
+scalar p_hksj = r(p)
+display %9.2e p_hksj
+meta forestplot, se(khartung) eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-54vs65-69_HKSJ_sens2.png", replace
+putdocx paragraph, style(Heading2)
+putdocx text ("Age (50-54 vs. 65-69)")
+putdocx paragraph, style(Heading3)
+putdocx text ("excluding study with slightly different grouping")
+putdocx paragraph
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-54vs65-69_HKSJ_sens2.png", width(8cm)
+
+    * Meta-analysis REML due to only three studies left
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+meta summarize
+scalar p_reml = r(p)
+display %9.2e p_reml
+meta forestplot, eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-54vs60-65_sens2.png", replace
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_age50-54vs60-65_sens2.png", width(8cm)
+
+*** Antiplatelet agent (no vs. yes) *******************************************
+use "fpr_fit_antiplatelet.dta", clear
+keep if strpos(popu, "pop") > 0
+drop if strpos(rob, "High") > 0
+
+    * Meta-analysis HKSJ
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+meta summarize, se(khartung) nostudies
+scalar p_hksj = r(p)
+display %9.2e p_hksj
+meta forestplot, se(khartung) eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_antiplatelet_HKSJ_sens.png", replace
+
+putdocx paragraph, style(Heading2)
+putdocx text ("Antiplatelet agent")
+putdocx paragraph, style(Heading3)
+putdocx text ("excluding studies at high risk of bias")
+putdocx paragraph, style(Heading3)
+putdocx text ("FIT")
+putdocx paragraph
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_antiplatelet_HKSJ_sens.png", width(8cm)
+
+    * Meta-analysis REML due to only two studies left
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+meta summarize
+scalar p_reml = r(p)
+display %9.2e p_reml
+meta forestplot, eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_antiplatelet_sens2.png", replace
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_antiplatelet_sens2.png", width(8cm)
+
+
+*** Aspirin (no vs. yes) *******************************************
+use "fpr_fit_aspirin.dta", clear
+keep if strpos(popu, "pop") > 0
+drop if strpos(rob, "High") > 0
+
+    * Meta-analysis HKSJ
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+meta summarize, se(khartung) nostudies
+scalar p_hksj = r(p)
+display %9.2e p_hksj
+meta forestplot, se(khartung) eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_aspirin_HKSJ_sens.png", replace
+
+putdocx paragraph, style(Heading2)
+putdocx text ("Aspirin")
+putdocx paragraph, style(Heading3)
+putdocx text ("excluding studies at high risk of bias")
+putdocx paragraph, style(Heading3)
+putdocx text ("FIT")
+putdocx paragraph
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_aspirin_HKSJ_sens.png", width(8cm)
+
+    * Meta-analysis REML due to only two studies left
+meta set log_RR_FPR_comp_ref se, studylabel(author_year) eslabel(log_RR)
+    
+meta summarize
+scalar p_reml = r(p)
+display %9.2e p_reml
+meta forestplot, eform nullrefline esrefline cibind(parentheses)
+gr export "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_aspirin_sens2.png", replace
+putdocx image "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Statawork\FP outcomes\output\Forest_plot_FIT_FPR_aspirin_sens2.png", width(8cm)
+
+
+********************************************************************************
+
+*close and save word document
+putdocx save "C:\Users\wpoulsen\OneDrive - Syddansk Universitet\PhD\SR MA false screening results\Results\Supplementary files\SensitivityanalysesFPR.docx", replace
