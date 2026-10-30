@@ -1,0 +1,90 @@
+###### Script to create forest plot with overall results, Figure 3
+###### for PPV data only
+
+## Define working directory
+setwd("C:/Users/wpoulsen/OneDrive - Syddansk Universitet/PhD/SR MA false screening results/Statawork/FP outcomes/data/For R")
+
+### install packages
+#install.packages("forestplot")
+#install.packages("tidyr")
+#install.packages("dplyr")
+
+## call library
+library(forestplot)
+library(tidyr)
+library(dplyr)
+
+# upload data 
+Overallfigure<-read.csv(file="OverallTableforR.csv", sep=",")
+
+# omit totalnparticipants
+Overallfigure <- Overallfigure %>% select(-Totalnparticipants)
+
+# filter based on Outcome
+Overallfigure <- Overallfigure %>% filter(Outcome != "FPR")
+
+#order the file by test 
+Overallfigure<-Overallfigure[order(Overallfigure$Faecaltest),]
+
+# split Effect size variable to effect, lower ci and upper ci for forest plot
+Overallfigure <- Overallfigure %>%
+  # copy existing variable with three values and split the new variable into effect, lower ci and upper ci
+  mutate(Effect_CI_clean = gsub("[()]", "", EffectsizeHKSJ95CI)) %>%
+  separate(Effect_CI_clean, into = c("Effect", "CI"), sep = " ", extra = "merge") %>%
+  separate(CI, into = c("Lower", "Upper"), sep = "–", convert = TRUE) %>%
+  mutate(across(c(Effect, Lower, Upper), as.numeric))
+
+# drop Outcome variable
+Overallfigure <- Overallfigure %>% select(-Outcome)
+
+# create label list for figure
+columnheadings <- cbind(
+  c("Exposure (reference vs. comparison)", Overallfigure$Riskfactor),
+  c("Faecal test", Overallfigure$Faecaltest),
+  c("n studies", Overallfigure$nstudies),
+  c("Random effects, HKSJ (95% CI)", Overallfigure$EffectsizeHKSJ95CI))
+
+colnames(columnheadings)<-c("Exposure (reference vs. comparison)", "Faecal test", "n studies", "Random effects, HKSJ (95% CI)")
+
+# remove first row that has names instead of data
+columnheadings <- columnheadings[-1, ]
+head(columnheadings) # check that data is now first row instead of column names
+nrow(columnheadings) # check that the two data frames now have the same number of rows
+nrow(Overallfigure) # check that the two data frames now have the same number of rows
+
+#Shorten exposure names that are too long
+Overallfigure$Riskfactor <- substr(Overallfigure$Riskfactor, 1, 39)  # max 39 points
+columnheadings[, 1] <- substr(columnheadings[, 1], 1, 39)  # max 39 points
+
+# Force R to show normal numbers
+options(scipen = 999)
+
+# create forest plot
+## define plot name 
+png("OverallfigurePPV.png", width = 3000, height = 4000, res = 150)
+Overallfigure  %>%  
+  forestplot(labeltext = columnheadings,
+             clip = c(0.1, 4.0),
+             vertices = TRUE,
+             mean = Effect,
+             lower = Lower,
+             upper = Upper,
+             zero = 1,
+             xlog = FALSE,
+             xlab="Risk Ratio",
+             xlim = c(0, 120),
+             boxsize = 0.2,
+             txt_gp = fpTxtGp(
+               label = gpar(cex = 1.4),   # columns
+               ticks = gpar(cex = 1.2),   # x-axis numbers
+               xlab  = gpar(cex = 1.3)    # "Risk Ratio"
+             ),
+             col = fpColors(box = "royalblue", line = "darkblue")) %>% 
+  fp_decorate_graph(box = gpar(lty = 2, col = "lightgray"),
+                    graph.pos = 4) |> fp_add_header("Exposure (reference vs. comparison)" = c("Risk factor"),
+                                                    "Faecal test" = c("Faecal test"),
+                                                    "n studies" = c("n studies"),
+                                                    "Random effects, HKSJ (95% CI)" = c("Pooled, (95% CI)"))
+#close and save the plot
+dev.off()
+
